@@ -38,3 +38,6 @@ Here is an example of the daily list format:
 
 | IP Address     | Target C2      | Open Ports | Score (Inbound/Outbound) | Country | Scan Time             |
 |----------------|----------------|------------|--------------------------|---------|-----------------------|
+| 74.207.229.59 | c2_covenant | 7443 | Low/Critical | US | 2024-07-17 17:05:27 |
+| 156.194.241.12 | c2_posh | 443 | Safe/Critical | EG | 2024-06-24 01:41:57 |
+| 192.99.229.140 | c2_mythic | 3189 | Safe/Critical | CA | 2024-07-21 16:53:26 |
