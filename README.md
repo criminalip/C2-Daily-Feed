@@ -15,7 +15,7 @@ These IP addresses are intentionally chosen to reflect a broad spectrum of condi
 ## Criteria for IP Selection
 
 - **Tags:** IPs with C2_xx tags.
-- **Honeypot Detections:** IPs caught in honeypots.
+- **Honeypot Detections:** IPs caught in [Criminal IP](https://www.criminalip.io)'s honeypots.
 - **Additional conditions** as specified by senior analysts.
 
 ## Data Fields
@@ -38,6 +38,6 @@ Here is an example of the daily list format:
 
 | IP Address     | Target C2      | Open Ports | Score (Inbound/Outbound) | Country | Scan Time             |
 |----------------|----------------|------------|--------------------------|---------|-----------------------|
-| [88.119.174.117](https://www.criminalip.io/asset/report/88.119.174.117)  | c2_covenant | 7443 | Low/Critical | US | 2024-07-02 15:16:16 |
-| [20.51.184.161](https://www.criminalip.io/asset/report/20.51.184.161)  | c2_posh | 443 | Low/Critical | EG | 2024-06-24 01:41:57 |
-| [143.198.40.134](https://www.criminalip.io/asset/report/143.198.40.134)  | c2_mythic | 80 | Low/Critical | CA | 2024-07-22 22:17:34 |
+| [167.172.53.165](https://www.criminalip.io/asset/report/167.172.53.165)  | c2_covenant | 7443 | Low/Critical | US | 2024-07-02 15:16:16 |
+| [156.194.241.12](https://www.criminalip.io/asset/report/156.194.241.12)  | c2_posh | 443 | Safe/Critical | EG | 2024-07-22 19:55:17 |
+| [150.136.25.249](https://www.criminalip.io/asset/report/150.136.25.249)  | c2_mythic | 80 | Low/Critical | SG | 2024-07-23 17:08:27 |
