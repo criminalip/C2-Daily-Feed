@@ -1,0 +1,13 @@
+IP,Target C2,OpenPorts,Score(Inbound/Outbound),Country,Scan Time
+158.58.207.165,c2_darkcomet,1604,,Unknown,2025-05-16 15:18:43
+18.189.87.104,c2_mythic,443,Critical/Critical,us,2025-05-22 22:08:36
+159.89.233.174,c2_mythic,443,Critical/Moderate,us,2025-05-22 20:45:37
+3.129.196.147,c2_mythic,443,,Unknown,2025-05-22 21:19:58
+93.93.129.174,c2_mythic,443,,Unknown,2025-05-22 22:11:57
+121.43.235.93,c2_mythic,443,,Unknown,2025-05-22 21:23:49
+159.203.180.92,c2_mythic,80,,Unknown,2025-05-22 20:58:24
+44.214.241.81,c2_mythic,443,,Unknown,2025-05-22 22:28:41
+18.191.137.27,c2_mythic,443,,Unknown,2025-05-22 21:58:29
+93.105.1.235,c2_darkcomet,8888,,Unknown,2025-05-21 02:09:41
+165.227.250.1,c2_mythic,80,,Unknown,2025-05-22 21:14:49
+18.143.93.130,c2_mythic,80,,Unknown,2025-05-22 21:13:42
