@@ -1,0 +1,16 @@
+IP,Target C2,OpenPorts,Score(Inbound/Outbound),Country,Scan Time
+15.237.162.48,c2_posh,443,Critical/Critical,fr,2025-05-25 09:56:35
+3.105.232.121,c2_meshagent,443,Critical/Critical,au,2025-05-28 22:53:06
+85.215.221.231,c2_covenant,7443,Critical/Critical,de,2025-05-26 16:26:40
+3.88.117.69,c2_meshagent,443,Critical/Critical,us,2025-05-28 20:52:40
+3.115.6.114,c2_meshagent,443,Critical/Critical,jp,2025-05-28 22:44:26
+3.83.159.195,c2_meshagent,443,Critical/Critical,us,2025-05-28 23:23:14
+93.105.1.235,c2_darkcomet,1604,Critical/Critical,pl,2025-05-16 15:18:43
+3.134.60.57,c2_meshagent,443,Critical/Critical,us,2025-05-28 23:02:22
+3.110.170.103,c2_meshagent,443,Critical/Critical,in,2025-05-28 22:46:15
+45.134.26.136,c2_posh,443,Critical/Critical,ae,2025-05-28 11:03:46
+3.145.11.46,c2_meshagent,443,Critical/Critical,us,2025-05-28 21:50:51
+3.106.225.186,c2_meshagent,443,Critical/Critical,au,2025-05-28 21:26:45
+3.122.76.20,c2_meshagent,443,Critical/Critical,de,2025-05-28 22:33:17
+3.14.65.146,c2_meshagent,443,Critical/Critical,us,2025-05-28 22:40:53
+158.58.207.165,c2_darkcomet,8888,Critical/Critical,bg,2025-05-21 02:09:41
