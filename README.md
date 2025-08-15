@@ -38,6 +38,6 @@ Here is an example of the daily list format:
 
 | IP Address     | Target C2      | Open Ports | Score (Inbound/Outbound) | Country | Scan Time             |
 |----------------|----------------|------------|--------------------------|---------|-----------------------|
-| [34.69.120.231](https://www.criminalip.io/asset/report/34.69.120.231)  | c2_meshagent | 443 | Critical/Critical | us | 2025-08-12 23:15:57 |
-| [35.180.97.114](https://www.criminalip.io/asset/report/35.180.97.114)  | c2_havoc | 443 | Critical/Critical | fr | 2025-08-08 19:47:37 |
-| [130.61.204.173](https://www.criminalip.io/asset/report/130.61.204.173)  | c2_meshagent | 80 | Critical/Critical | de | 2025-08-12 22:53:00 |
+| [185.68.250.19](https://www.criminalip.io/asset/report/185.68.250.19)  | c2_meshagent | 443 | Critical/Critical | at | 2025-08-14 00:23:06 |
+| [51.75.205.189](https://www.criminalip.io/asset/report/51.75.205.189)  | c2_covenant | 7443 | Critical/Critical | fr | 2025-07-25 01:16:01 |
+| [13.37.220.47](https://www.criminalip.io/asset/report/13.37.220.47)  | c2_havoc | 443 | Critical/Critical | fr | 2025-08-13 20:12:53 |
