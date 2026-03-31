@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>서버 취약점 점검 - 보고서 시스템</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <%- include('partials/nav', { activeScanner: 'vuln' }) %>
+
+    <% if (message) { %>
+      <div class="alert alert-success"><%= message %></div>
+    <% } %>
+    <% if (error) { %>
+      <div class="alert alert-error"><%= error %></div>
+    <% } %>
+
+    <!-- Upload Section -->
+    <section class="upload-section">
+      <form id="uploadForm" action="/vuln/upload" method="POST" enctype="multipart/form-data">
+        <div class="dropzone" id="dropzone">
+          <div class="dropzone-content">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <p>서버 취약점 점검 JSON 파일을 드래그하거나 클릭하여 선택하세요</p>
+            <p class="dropzone-hint">여러 파일 동시 업로드 가능 (vul_scanner.sh 결과)</p>
+          </div>
+          <input type="file" id="fileInput" name="files" accept=".json" multiple hidden>
+        </div>
+        <button type="submit" class="btn btn-primary" id="uploadBtn" disabled>업로드</button>
+        <span id="fileCount" class="file-count"></span>
+      </form>
+    </section>
+
+    <!-- Server List Section -->
+    <section class="list-section">
+      <h2>업로드된 서버 목록 (<%= reports.length %>건)</h2>
+      <% if (reports.length === 0) { %>
+        <p class="empty-message">업로드된 보고서가 없습니다.</p>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="server-table">
+            <thead>
+              <tr>
+                <th>호스트명</th>
+                <th>OS</th>
+                <th>점검일</th>
+                <th class="num-col">총 항목</th>
+                <th class="num-col">취약</th>
+                <th class="num-col">양호</th>
+                <th class="num-col">N/A</th>
+                <th>작업</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% for (const r of reports) { %>
+                <tr>
+                  <td class="hostname"><%= r.hostname %></td>
+                  <td><%= r.os %> <%= r.os_version %></td>
+                  <td><%= r.scan_date ? r.scan_date.substring(0, 10) : '-' %></td>
+                  <td class="num-col"><%= r.summary.total %></td>
+                  <td class="num-col"><span class="badge badge-fail"><%= r.summary.fail %></span></td>
+                  <td class="num-col"><span class="badge badge-pass"><%= r.summary.pass %></span></td>
+                  <td class="num-col"><span class="badge badge-na"><%= r.summary.na %></span></td>
+                  <td class="actions">
+                    <a href="/vuln/report/<%= r.filename %>" class="btn btn-sm btn-view">보기</a>
+                    <a href="/vuln/download/<%= r.filename %>" class="btn btn-sm btn-download">PDF</a>
+                    <form action="/vuln/delete/<%= r.filename %>" method="POST" class="inline-form"
+                          onsubmit="return confirm('정말 삭제하시겠습니까?')">
+                      <button type="submit" class="btn btn-sm btn-delete">삭제</button>
+                    </form>
+                  </td>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </section>
+  </div>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const fileCount = document.getElementById('fileCount');
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); fileInput.files = e.dataTransfer.files; updateFileCount(); });
+    fileInput.addEventListener('change', updateFileCount);
+    function updateFileCount() {
+      const count = fileInput.files.length;
+      if (count > 0) { fileCount.textContent = count + '개 파일 선택됨'; uploadBtn.disabled = false; }
+      else { fileCount.textContent = ''; uploadBtn.disabled = true; }
+    }
+  </script>
+</body>
+</html>

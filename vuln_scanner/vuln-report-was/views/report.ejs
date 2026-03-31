@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>취약점 보고서 - <%= report.hostname %></title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <%- include('partials/nav', { activeScanner: 'vuln' }) %>
+
+    <header class="report-header" style="margin-top:16px;">
+      <div class="header-left">
+        <a href="/vuln" class="btn btn-sm btn-back">&larr; 목록</a>
+        <h1>취약점 점검 보고서</h1>
+      </div>
+      <div>
+        <a href="/vuln/download/<%= report.filename %>" class="btn btn-primary btn-download-main">PDF 다운로드</a>
+      </div>
+    </header>
+
+    <!-- System Info -->
+    <section class="system-info">
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">호스트명</span>
+          <span class="info-value"><%= report.hostname %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">OS</span>
+          <span class="info-value"><%= report.os %> <%= report.os_version %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">커널</span>
+          <span class="info-value"><%= report.kernel %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">IP 주소</span>
+          <span class="info-value"><%= report.ip_addresses.join(', ') %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">점검일시</span>
+          <span class="info-value"><%= report.scan_date %></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section class="dashboard">
+      <div class="dashboard-row">
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+          <div class="card card-total">
+            <div class="card-number"><%= report.summary.total %></div>
+            <div class="card-label">전체 항목</div>
+          </div>
+          <div class="card card-fail">
+            <div class="card-number"><%= report.summary.fail %></div>
+            <div class="card-label">취약</div>
+            <div class="card-pct"><%= report.summary.total > 0 ? Math.round(report.summary.fail / report.summary.total * 100) : 0 %>%</div>
+          </div>
+          <div class="card card-pass">
+            <div class="card-number"><%= report.summary.pass %></div>
+            <div class="card-label">양호</div>
+            <div class="card-pct"><%= report.summary.total > 0 ? Math.round(report.summary.pass / report.summary.total * 100) : 0 %>%</div>
+          </div>
+          <div class="card card-na">
+            <div class="card-number"><%= report.summary.na %></div>
+            <div class="card-label">N/A</div>
+            <div class="card-pct"><%= report.summary.total > 0 ? Math.round(report.summary.na / report.summary.total * 100) : 0 %>%</div>
+          </div>
+        </div>
+        <!-- Pie Chart -->
+        <div class="chart-container chart-pie">
+          <canvas id="pieChart"></canvas>
+        </div>
+      </div>
+      <!-- Category Bar Chart -->
+      <div class="chart-container chart-bar">
+        <canvas id="barChart"></canvas>
+      </div>
+    </section>
+
+    <!-- Results Table -->
+    <section class="results-section">
+      <div class="table-controls">
+        <div class="filter-buttons">
+          <button class="btn btn-filter active" data-filter="all">전체 (<%= report.results.length %>)</button>
+          <button class="btn btn-filter btn-filter-fail" data-filter="취약">취약 (<%= report.summary.fail %>)</button>
+          <button class="btn btn-filter btn-filter-pass" data-filter="양호">양호 (<%= report.summary.pass %>)</button>
+          <button class="btn btn-filter btn-filter-na" data-filter="N/A">N/A (<%= report.summary.na %>)</button>
+        </div>
+        <input type="text" id="searchInput" class="search-input" placeholder="ID, 제목, 상세 내용 검색...">
+      </div>
+
+      <div class="table-responsive">
+        <table class="results-table" id="resultsTable">
+          <thead>
+            <tr>
+              <th class="sortable" data-col="0">ID</th>
+              <th class="sortable" data-col="1">카테고리</th>
+              <th class="sortable" data-col="2">제목</th>
+              <th class="sortable" data-col="3">중요도</th>
+              <th class="sortable" data-col="4">결과</th>
+              <th>상세 결과</th>
+              <th>현재설정</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <% for (const item of report.results) { %>
+              <tr data-status="<%= item.status %>">
+                <td class="col-id"><%= item.id %></td>
+                <td><%= item.category %></td>
+                <td><%= item.title %></td>
+                <td><span class="importance importance-<%= item.importance === '상' ? 'high' : item.importance === '중' ? 'mid' : 'low' %>"><%= item.importance %></span></td>
+                <td><span class="badge badge-<%= item.status === '취약' ? 'fail' : item.status === '양호' ? 'pass' : 'na' %>"><%= item.status %></span></td>
+                <td class="col-detail"><%= item.detail %></td>
+                <td class="col-settings"><%= item.current_settings %></td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+      <div id="noResults" class="empty-message" style="display:none;">일치하는 항목이 없습니다.</div>
+    </section>
+  </div>
+
+  <script>
+    // Chart data
+    const summaryData = <%- JSON.stringify(report.summary) %>;
+    const categoryStats = <%- JSON.stringify(categoryStats) %>;
+
+    // Pie Chart
+    new Chart(document.getElementById('pieChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['취약', '양호', 'N/A'],
+        datasets: [{
+          data: [summaryData.fail, summaryData.pass, summaryData.na],
+          backgroundColor: ['#ef4444', '#22c55e', '#9ca3af'],
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { padding: 16, font: { size: 13 } } }
+        }
+      }
+    });
+
+    // Bar Chart
+    const catLabels = Object.keys(categoryStats);
+    const catFail = catLabels.map(c => categoryStats[c].fail);
+    const catPass = catLabels.map(c => categoryStats[c].pass);
+    const catNA = catLabels.map(c => categoryStats[c].na);
+
+    new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: {
+        labels: catLabels,
+        datasets: [
+          { label: '취약', data: catFail, backgroundColor: '#ef4444' },
+          { label: '양호', data: catPass, backgroundColor: '#22c55e' },
+          { label: 'N/A', data: catNA, backgroundColor: '#9ca3af' }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        scales: {
+          x: { stacked: true, ticks: { stepSize: 1 } },
+          y: { stacked: true }
+        },
+        plugins: {
+          legend: { position: 'top' }
+        }
+      }
+    });
+
+    // Filter
+    const filterBtns = document.querySelectorAll('.btn-filter');
+    const rows = document.querySelectorAll('#resultsBody tr');
+    const searchInput = document.getElementById('searchInput');
+    const noResults = document.getElementById('noResults');
+    let currentFilter = 'all';
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        applyFilters();
+      });
+    });
+
+    searchInput.addEventListener('input', applyFilters);
+
+    function applyFilters() {
+      const query = searchInput.value.toLowerCase();
+      let visible = 0;
+      rows.forEach(row => {
+        const status = row.dataset.status;
+        const text = row.textContent.toLowerCase();
+        const matchFilter = currentFilter === 'all' || status === currentFilter;
+        const matchSearch = !query || text.includes(query);
+        const show = matchFilter && matchSearch;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      noResults.style.display = visible === 0 ? '' : 'none';
+    }
+
+    // Sort
+    const sortable = document.querySelectorAll('.sortable');
+    let sortCol = -1, sortAsc = true;
+
+    sortable.forEach(th => {
+      th.addEventListener('click', () => {
+        const col = parseInt(th.dataset.col);
+        if (sortCol === col) {
+          sortAsc = !sortAsc;
+        } else {
+          sortCol = col;
+          sortAsc = true;
+        }
+        // Update sort indicators
+        sortable.forEach(s => s.classList.remove('sort-asc', 'sort-desc'));
+        th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+
+        const tbody = document.getElementById('resultsBody');
+        const rowsArr = Array.from(tbody.querySelectorAll('tr'));
+        rowsArr.sort((a, b) => {
+          const aVal = a.children[col].textContent.trim();
+          const bVal = b.children[col].textContent.trim();
+          const cmp = aVal.localeCompare(bVal, 'ko', { numeric: true });
+          return sortAsc ? cmp : -cmp;
+        });
+        rowsArr.forEach(r => tbody.appendChild(r));
+      });
+    });
+  </script>
+</body>
+</html>

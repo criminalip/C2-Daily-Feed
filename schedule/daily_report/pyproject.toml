@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "logmonitoring"
+version = "1.0.0"
+description = "AISpera Log Monitoring Daemon Poetry"
+authors = ["bkhwang <bkhwang@aispera.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+python-dotenv = "^1.0.1"
+psutil = "^5.9.8"
+pyyaml = "^6.0.1"
+requests = "^2.31.0"
+elasticsearch = "^8.12.1"
+aiohttp = "3.9.3"
+pytz = "^2024.2"
+slack-sdk = "^3.35.0"
+colorlog = "^6.9.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.flake8]
+max-line-length = 120
+exclude = [
+    ".git",
+    "__pycache__"
+]

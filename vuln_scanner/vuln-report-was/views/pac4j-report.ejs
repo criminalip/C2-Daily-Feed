@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>pac4j-jwt 취약점 보고서 - <%= report.hostname %></title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <%- include('partials/nav', { activeScanner: 'pac4j' }) %>
+
+    <header class="report-header" style="margin-top:16px;">
+      <div class="header-left">
+        <a href="/pac4j" class="btn btn-sm btn-back">&larr; 목록</a>
+        <h1>CVE-2026-29000 점검 보고서</h1>
+      </div>
+      <div>
+        <a href="/pac4j/download/<%= report.filename %>" class="btn btn-primary btn-download-main">PDF 다운로드</a>
+      </div>
+    </header>
+
+    <!-- System Info -->
+    <section class="system-info">
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">호스트명</span>
+          <span class="info-value"><%= report.hostname %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">OS</span>
+          <span class="info-value"><%= report.os %> <%= report.os_version %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">커널</span>
+          <span class="info-value"><%= report.kernel %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">IP 주소</span>
+          <span class="info-value"><%= report.ip_addresses.join(', ') %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">점검일시</span>
+          <span class="info-value"><%= report.scan_date %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">실행 환경</span>
+          <span class="info-value"><%= report.host_environment %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">컨테이너 런타임</span>
+          <span class="info-value"><%= report.container_runtime && report.container_runtime !== 'none' ? report.container_runtime : '-' %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">CVE / CVSS</span>
+          <span class="info-value"><%= report.cve %> / <span class="badge badge-fail"><%= report.cvss %></span></span>
+        </div>
+        <div class="info-item" style="grid-column: 1 / -1;">
+          <span class="info-label">취약 버전 / 패치 버전</span>
+          <span class="info-value" style="font-size:0.85rem;">
+            <span class="badge badge-fail">4.x &lt; 4.5.9</span>
+            <span class="badge badge-fail">5.x &lt; 5.7.9</span>
+            <span class="badge badge-fail">6.x &lt; 6.3.3</span>
+            &nbsp;&rarr;&nbsp;
+            <span class="badge badge-pass">4.x &ge; 4.5.9</span>
+            <span class="badge badge-pass">5.x &ge; 5.7.9</span>
+            <span class="badge badge-pass">6.x &ge; 6.3.3</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section class="dashboard">
+      <div class="dashboard-row">
+        <div class="summary-cards">
+          <div class="card card-total">
+            <div class="card-number"><%= report.summary.total %></div>
+            <div class="card-label">전체 항목</div>
+          </div>
+          <div class="card card-fail">
+            <div class="card-number"><%= report.summary.vulnerable %></div>
+            <div class="card-label">취약</div>
+            <div class="card-pct"><%= report.summary.total > 0 ? Math.round(report.summary.vulnerable / report.summary.total * 100) : 0 %>%</div>
+          </div>
+          <div class="card card-pass">
+            <div class="card-number"><%= report.summary.safe %></div>
+            <div class="card-label">양호</div>
+            <div class="card-pct"><%= report.summary.total > 0 ? Math.round(report.summary.safe / report.summary.total * 100) : 0 %>%</div>
+          </div>
+          <div class="card card-na">
+            <div class="card-number"><%= report.summary.unknown %></div>
+            <div class="card-label">확인불가</div>
+            <div class="card-pct"><%= report.summary.total > 0 ? Math.round(report.summary.unknown / report.summary.total * 100) : 0 %>%</div>
+          </div>
+        </div>
+        <div class="chart-container chart-pie">
+          <canvas id="pieChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-container chart-bar">
+        <canvas id="barChart"></canvas>
+      </div>
+    </section>
+
+    <!-- Results Table -->
+    <section class="results-section">
+      <div class="table-controls">
+        <div class="filter-buttons">
+          <button class="btn btn-filter active" data-filter="all">전체 (<%= report.results.length %>)</button>
+          <button class="btn btn-filter btn-filter-fail" data-filter="취약">취약 (<%= report.summary.vulnerable %>)</button>
+          <button class="btn btn-filter btn-filter-pass" data-filter="양호">양호 (<%= report.summary.safe %>)</button>
+          <button class="btn btn-filter btn-filter-na" data-filter="확인불가">확인불가 (<%= report.summary.unknown %>)</button>
+        </div>
+        <input type="text" id="searchInput" class="search-input" placeholder="경로, 버전, 상세 내용 검색...">
+      </div>
+
+      <div class="table-responsive">
+        <table class="results-table" id="resultsTable">
+          <thead>
+            <tr>
+              <th class="sortable" data-col="0">경로</th>
+              <th class="sortable" data-col="1">현재 버전</th>
+              <th class="sortable" data-col="2">패치 버전</th>
+              <th class="sortable" data-col="3">결과</th>
+              <th>상세</th>
+              <th class="sortable" data-col="5">탐지 출처</th>
+              <th class="sortable" data-col="6">컨테이너</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <%
+              function formatSourceType(src) {
+                if (!src) return '기타';
+                if (src.startsWith('embedded_in_archive')) return '아카이브 내부';
+                if (src === 'jar_file') return 'JAR 파일';
+                if (src === 'pom.xml') return 'Maven pom.xml';
+                if (src === 'build.gradle') return 'Gradle';
+                return src;
+              }
+            %>
+            <% for (const item of report.results) { %>
+              <tr data-status="<%= item.status %>">
+                <td class="col-location" title="<%= item.location %>"><%= item.location %></td>
+                <td class="col-version"><span class="badge <%= item.status === '취약' ? 'badge-fail' : item.status === '양호' ? 'badge-pass' : 'badge-na' %>"><%= item.version %></span></td>
+                <td class="col-version"><% if (item.patched_version) { %><span class="badge badge-pass"><%= item.patched_version %></span><% } else { %>-<% } %></td>
+                <td><span class="badge <%= item.status === '취약' ? 'badge-fail' : item.status === '양호' ? 'badge-pass' : 'badge-na' %>"><%= item.status %></span></td>
+                <td class="col-detail"><%= item.detail %></td>
+                <td><%= formatSourceType(item.source_type) %></td>
+                <td><%= item.container || '-' %></td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+      <div id="noResults" class="empty-message" style="display:none;">일치하는 항목이 없습니다.</div>
+    </section>
+  </div>
+
+  <script>
+    const summaryData = <%- JSON.stringify(report.summary) %>;
+    const sourceStats = <%- JSON.stringify(sourceStats) %>;
+
+    new Chart(document.getElementById('pieChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['취약', '양호', '확인불가'],
+        datasets: [{
+          data: [summaryData.vulnerable, summaryData.safe, summaryData.unknown],
+          backgroundColor: ['#ef4444', '#22c55e', '#9ca3af'],
+          borderWidth: 2, borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { padding: 16, font: { size: 13 } } } }
+      }
+    });
+
+    const srcLabels = Object.keys(sourceStats);
+    new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: {
+        labels: srcLabels,
+        datasets: [
+          { label: '취약', data: srcLabels.map(c => sourceStats[c].vulnerable), backgroundColor: '#ef4444' },
+          { label: '양호', data: srcLabels.map(c => sourceStats[c].safe), backgroundColor: '#22c55e' },
+          { label: '확인불가', data: srcLabels.map(c => sourceStats[c].unknown), backgroundColor: '#9ca3af' }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        scales: { x: { stacked: true, ticks: { stepSize: 1 } }, y: { stacked: true } },
+        plugins: { legend: { position: 'top' } }
+      }
+    });
+
+    // Filter & Search
+    const filterBtns = document.querySelectorAll('.btn-filter');
+    const rows = document.querySelectorAll('#resultsBody tr');
+    const searchInput = document.getElementById('searchInput');
+    const noResults = document.getElementById('noResults');
+    let currentFilter = 'all';
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        applyFilters();
+      });
+    });
+    searchInput.addEventListener('input', applyFilters);
+
+    function applyFilters() {
+      const query = searchInput.value.toLowerCase();
+      let visible = 0;
+      rows.forEach(row => {
+        const status = row.dataset.status;
+        const text = row.textContent.toLowerCase();
+        const show = (currentFilter === 'all' || status === currentFilter) && (!query || text.includes(query));
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      noResults.style.display = visible === 0 ? '' : 'none';
+    }
+
+    // Sort
+    const sortable = document.querySelectorAll('.sortable');
+    let sortCol = -1, sortAsc = true;
+    sortable.forEach(th => {
+      th.addEventListener('click', () => {
+        const col = parseInt(th.dataset.col);
+        if (sortCol === col) sortAsc = !sortAsc; else { sortCol = col; sortAsc = true; }
+        sortable.forEach(s => s.classList.remove('sort-asc', 'sort-desc'));
+        th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+        const tbody = document.getElementById('resultsBody');
+        const rowsArr = Array.from(tbody.querySelectorAll('tr'));
+        rowsArr.sort((a, b) => {
+          const cmp = a.children[col].textContent.trim().localeCompare(b.children[col].textContent.trim(), 'ko', { numeric: true });
+          return sortAsc ? cmp : -cmp;
+        });
+        rowsArr.forEach(r => tbody.appendChild(r));
+      });
+    });
+  </script>
+</body>
+</html>

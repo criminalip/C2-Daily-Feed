@@ -1,0 +1,23 @@
+FROM rockylinux:9-minimal
+
+# 최소 도구만 설치 (curl, procps, findutils)
+RUN microdnf install -y procps-ng findutils curl && microdnf clean all
+
+# 취약 버전 nginx-ui 시뮬레이션 바이너리 (v2.3.1)
+RUN echo '#!/bin/bash' > /usr/local/bin/nginx-ui && \
+    echo 'if [[ "$1" == "-v" || "$1" == "--version" ]]; then echo "nginx-ui version 2.3.1"; exit 0; fi' >> /usr/local/bin/nginx-ui && \
+    echo 'echo "Nginx UI is running on :9000"' >> /usr/local/bin/nginx-ui && \
+    echo 'while true; do sleep 3600; done' >> /usr/local/bin/nginx-ui && \
+    chmod +x /usr/local/bin/nginx-ui
+
+# systemd 서비스 파일 시뮬레이션
+RUN mkdir -p /etc/systemd/system && \
+    printf '[Unit]\nDescription=Nginx UI\n\n[Service]\nExecStart=/usr/local/bin/nginx-ui\n\n[Install]\nWantedBy=multi-user.target\n' \
+    > /etc/systemd/system/nginx-ui.service
+
+# 스캐너 복사
+COPY cve_2026_27944_nginxui_scanner.sh /opt/scanner/cve_2026_27944_nginxui_scanner.sh
+RUN chmod +x /opt/scanner/cve_2026_27944_nginxui_scanner.sh
+
+# nginx-ui 프로세스를 백그라운드로 실행 후 스캐너 대기
+CMD ["/bin/bash", "-c", "/usr/local/bin/nginx-ui & sleep 1 && bash /opt/scanner/cve_2026_27944_nginxui_scanner.sh --output /tmp/result.json && cat /tmp/result.json"]

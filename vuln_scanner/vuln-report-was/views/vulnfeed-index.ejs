@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>취약점 피드 - 취약점 점검 보고서 시스템</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="container">
+  <%- include('partials/nav') %>
+
+  <header>
+    <div class="report-header">
+      <h1>취약점 피드</h1>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <label style="font-size:0.85rem;color:#6b7280;">
+          <input type="checkbox" id="autoRefresh"> 자동 새로고침 (5분)
+        </label>
+        <span id="lastUpdated" style="font-size:0.8rem;color:#9ca3af;"></span>
+      </div>
+    </div>
+  </header>
+
+  <% if (message) { %><div class="alert alert-success"><%= message %></div><% } %>
+  <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+
+  <!-- 심각도별 요약 카드 -->
+  <div class="dashboard">
+    <div class="summary-cards" style="grid-template-columns: repeat(5, 1fr);">
+      <div class="card card-total">
+        <div class="card-number" id="statTotal"><%= stats.total %></div>
+        <div class="card-label">전체</div>
+      </div>
+      <div class="card" style="border-top-color:#dc2626;">
+        <div class="card-number" style="color:#dc2626;" id="statCritical"><%= stats.critical %></div>
+        <div class="card-label">CRITICAL</div>
+      </div>
+      <div class="card" style="border-top-color:#ea580c;">
+        <div class="card-number" style="color:#ea580c;" id="statHigh"><%= stats.high %></div>
+        <div class="card-label">HIGH</div>
+      </div>
+      <div class="card" style="border-top-color:#eab308;">
+        <div class="card-number" style="color:#eab308;" id="statMedium"><%= stats.medium %></div>
+        <div class="card-label">MEDIUM</div>
+      </div>
+      <div class="card" style="border-top-color:#22c55e;">
+        <div class="card-number" style="color:#22c55e;" id="statLow"><%= stats.low %></div>
+        <div class="card-label">LOW</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 차트 -->
+  <div class="dashboard-row">
+    <div class="chart-container chart-bar">
+      <canvas id="trendChart"></canvas>
+    </div>
+    <div class="chart-container chart-pie">
+      <canvas id="severityChart"></canvas>
+    </div>
+  </div>
+
+  <!-- 필터 -->
+  <div class="feed-filters" style="background:#fff;border-radius:8px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+    <form id="filterForm" method="GET" action="/vulnfeed" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+      <div style="flex:1;min-width:200px;">
+        <label class="info-label">검색</label>
+        <input type="text" name="search" class="search-input" style="width:100%;min-width:auto;" placeholder="CVE ID, 설명, 제품명..." value="<%= filters.search || '' %>">
+      </div>
+      <div>
+        <label class="info-label">심각도</label>
+        <select name="severity" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:0.85rem;">
+          <option value="">전체</option>
+          <option value="CRITICAL" <%= filters.severity === 'CRITICAL' ? 'selected' : '' %>>CRITICAL</option>
+          <option value="HIGH" <%= filters.severity === 'HIGH' ? 'selected' : '' %>>HIGH</option>
+          <option value="MEDIUM" <%= filters.severity === 'MEDIUM' ? 'selected' : '' %>>MEDIUM</option>
+          <option value="LOW" <%= filters.severity === 'LOW' ? 'selected' : '' %>>LOW</option>
+        </select>
+      </div>
+      <div>
+        <label class="info-label">소스</label>
+        <select name="source" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:0.85rem;">
+          <option value="">전체</option>
+          <option value="NVD" <%= filters.source === 'NVD' ? 'selected' : '' %>>NVD</option>
+          <option value="MITRE" <%= filters.source === 'MITRE' ? 'selected' : '' %>>MITRE</option>
+          <option value="CISA_KEV" <%= filters.source === 'CISA_KEV' ? 'selected' : '' %>>CISA KEV</option>
+          <option value="GitHub" <%= filters.source === 'GitHub' ? 'selected' : '' %>>GitHub</option>
+        </select>
+      </div>
+      <div>
+        <label class="info-label">KEV</label>
+        <select name="kev" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:0.85rem;">
+          <option value="">전체</option>
+          <option value="1" <%= filters.kev === '1' ? 'selected' : '' %>>KEV만</option>
+        </select>
+      </div>
+      <div>
+        <label class="info-label">시작일</label>
+        <input type="date" name="dateFrom" value="<%= filters.dateFrom || '' %>" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:0.85rem;">
+      </div>
+      <div>
+        <label class="info-label">종료일</label>
+        <input type="date" name="dateTo" value="<%= filters.dateTo || '' %>" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:0.85rem;">
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button type="submit" class="btn btn-primary">검색</button>
+        <a href="/vulnfeed" class="btn btn-back">초기화</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- 테이블 -->
+  <div class="results-section">
+    <div class="table-responsive">
+      <table class="results-table" id="vulnTable">
+        <thead>
+          <tr>
+            <th style="width:130px;">CVE ID</th>
+            <th>제목</th>
+            <th style="width:90px;">심각도</th>
+            <th style="width:60px;">CVSS</th>
+            <th style="width:60px;">소스</th>
+            <th style="width:50px;">KEV</th>
+            <th style="width:100px;">발행일</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (vulns.length === 0) { %>
+            <tr><td colspan="7" class="empty-message">조건에 맞는 취약점이 없습니다.</td></tr>
+          <% } %>
+          <% for (const v of vulns) { %>
+            <tr>
+              <td><a href="/vulnfeed/detail/<%= v.cve_id %>" style="color:#2563eb;font-weight:600;text-decoration:none;"><%= v.cve_id %></a></td>
+              <td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.83rem;"><%= (v.title_ko || v.title || '').substring(0, 120) %></td>
+              <td><span class="badge badge-severity-<%= (v.severity || 'NONE').toLowerCase() %>"><%= v.severity || 'NONE' %></span></td>
+              <td style="font-weight:600;"><%= v.cvss_v3_score || '-' %></td>
+              <td style="font-size:0.8rem;"><%= (v.source_list || '').split(',').slice(0, 2).join(', ') %></td>
+              <td><% if (v.is_kev) { %><span class="badge badge-kev">KEV</span><% } %></td>
+              <td style="font-size:0.8rem;white-space:nowrap;"><%= v.published_date ? new Date(v.published_date).toISOString().slice(0, 10) : '-' %></td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 페이지네이션 -->
+    <% if (pagination.totalPages > 1) { %>
+      <div class="feed-pagination" style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:16px;">
+        <% if (pagination.page > 1) { %>
+          <a href="<%= paginationUrl(1) %>" class="btn btn-sm btn-back">&laquo;</a>
+          <a href="<%= paginationUrl(pagination.page - 1) %>" class="btn btn-sm btn-back">&lsaquo;</a>
+        <% } %>
+
+        <%
+          let startP = Math.max(1, pagination.page - 2);
+          let endP = Math.min(pagination.totalPages, pagination.page + 2);
+          if (endP - startP < 4) {
+            if (startP === 1) endP = Math.min(pagination.totalPages, 5);
+            else startP = Math.max(1, endP - 4);
+          }
+        %>
+        <% for (let p = startP; p <= endP; p++) { %>
+          <a href="<%= paginationUrl(p) %>" class="btn btn-sm <%= p === pagination.page ? 'btn-primary' : 'btn-back' %>"><%= p %></a>
+        <% } %>
+
+        <% if (pagination.page < pagination.totalPages) { %>
+          <a href="<%= paginationUrl(pagination.page + 1) %>" class="btn btn-sm btn-back">&rsaquo;</a>
+          <a href="<%= paginationUrl(pagination.totalPages) %>" class="btn btn-sm btn-back">&raquo;</a>
+        <% } %>
+
+        <span style="font-size:0.8rem;color:#6b7280;margin-left:12px;">
+          총 <%= pagination.total %>건 (페이지 <%= pagination.page %>/<%= pagination.totalPages %>)
+        </span>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+// 심각도 분포 도넛 차트
+const severityCtx = document.getElementById('severityChart');
+new Chart(severityCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'],
+    datasets: [{
+      data: [<%= stats.critical %>, <%= stats.high %>, <%= stats.medium %>, <%= stats.low %>],
+      backgroundColor: ['#dc2626', '#ea580c', '#eab308', '#22c55e'],
+      borderWidth: 0
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { font: { size: 11 } } }
+    }
+  }
+});
+
+// 일별 추이 라인 차트
+const trendCtx = document.getElementById('trendChart');
+const trendData = <%- JSON.stringify(trend).replace(/</g, '\\u003c').replace(/>/g, '\\u003e') %>;
+new Chart(trendCtx, {
+  type: 'line',
+  data: {
+    labels: trendData.map(d => d.date),
+    datasets: [{
+      label: '신규 CVE',
+      data: trendData.map(d => d.count),
+      borderColor: '#2563eb',
+      backgroundColor: 'rgba(37,99,235,0.1)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 3
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 1 } },
+      x: { ticks: { font: { size: 10 }, maxRotation: 45 } }
+    },
+    plugins: {
+      legend: { display: false }
+    }
+  }
+});
+
+// 자동 새로고침
+let refreshTimer = null;
+const autoRefreshCheckbox = document.getElementById('autoRefresh');
+const lastUpdatedEl = document.getElementById('lastUpdated');
+
+lastUpdatedEl.textContent = '최근 갱신: ' + new Date().toLocaleTimeString('ko-KR');
+
+autoRefreshCheckbox.addEventListener('change', () => {
+  if (autoRefreshCheckbox.checked) {
+    refreshTimer = setInterval(() => { location.reload(); }, 5 * 60 * 1000);
+  } else {
+    clearInterval(refreshTimer);
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= vuln.cve_id %> - 취약점 피드</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="container">
+  <%- include('partials/nav') %>
+
+  <header>
+    <div class="report-header">
+      <div class="header-left">
+        <a href="/vulnfeed" class="btn btn-back">&larr; 목록으로</a>
+        <h1><%= vuln.cve_id %></h1>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <span class="badge badge-severity-<%= (vuln.severity || 'NONE').toLowerCase() %>" style="font-size:1rem;padding:6px 16px;"><%= vuln.severity || 'NONE' %></span>
+        <% if (vuln.is_kev) { %><span class="badge badge-kev" style="font-size:1rem;padding:6px 16px;">KEV</span><% } %>
+        <% if (vuln.exploit_available) { %><span class="badge badge-fail" style="font-size:0.85rem;padding:6px 12px;">Exploit 존재</span><% } %>
+        <% if (vuln.patch_available) { %><span class="badge badge-pass" style="font-size:0.85rem;padding:6px 12px;">패치 가능</span><% } %>
+      </div>
+    </div>
+  </header>
+
+  <!-- 기본 정보 -->
+  <div class="system-info">
+    <div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+      <div>
+        <span class="info-label">CVSS v3 점수</span>
+        <span class="info-value"><%= vuln.cvss_v3_score || '-' %></span>
+      </div>
+      <div>
+        <span class="info-label">심각도</span>
+        <span class="info-value"><%= vuln.severity || 'NONE' %></span>
+      </div>
+      <div>
+        <span class="info-label">발행일</span>
+        <span class="info-value"><%= vuln.published_date ? new Date(vuln.published_date).toISOString().slice(0, 10) : '-' %></span>
+      </div>
+      <div>
+        <span class="info-label">수정일</span>
+        <span class="info-value"><%= vuln.modified_date ? new Date(vuln.modified_date).toISOString().slice(0, 10) : '-' %></span>
+      </div>
+      <div>
+        <span class="info-label">최초 수집</span>
+        <span class="info-value"><%= vuln.first_seen ? new Date(vuln.first_seen).toISOString().slice(0, 16).replace('T', ' ') : '-' %></span>
+      </div>
+      <div>
+        <span class="info-label">최근 갱신</span>
+        <span class="info-value"><%= vuln.last_updated ? new Date(vuln.last_updated).toISOString().slice(0, 16).replace('T', ' ') : '-' %></span>
+      </div>
+      <% if (vuln.is_kev && vuln.kev_due_date) { %>
+      <div>
+        <span class="info-label">KEV 조치 기한</span>
+        <span class="info-value" style="color:#dc2626;font-weight:700;"><%= vuln.kev_due_date %></span>
+      </div>
+      <% } %>
+    </div>
+
+    <% if (vuln.cvss_v3_vector) { %>
+    <div style="margin-top:12px;">
+      <span class="info-label">CVSS 벡터</span>
+      <code style="font-size:0.85rem;background:#f3f4f6;padding:4px 8px;border-radius:4px;"><%= vuln.cvss_v3_vector %></code>
+    </div>
+    <% } %>
+  </div>
+
+  <!-- 설명 -->
+  <div class="system-info">
+    <h3 style="font-size:1rem;margin-bottom:8px;color:#374151;">설명</h3>
+    <% if (vuln.description_ko) { %>
+      <p style="font-size:0.9rem;line-height:1.8;color:#1f2937;white-space:pre-wrap;margin-bottom:12px;"><%= vuln.description_ko %></p>
+      <details style="margin-top:8px;">
+        <summary style="cursor:pointer;font-size:0.8rem;color:#6b7280;">원문 보기 (English)</summary>
+        <p style="font-size:0.85rem;line-height:1.6;color:#6b7280;white-space:pre-wrap;margin-top:8px;"><%= vuln.description %></p>
+      </details>
+    <% } else { %>
+      <p style="font-size:0.9rem;line-height:1.8;color:#4b5563;white-space:pre-wrap;"><%= vuln.description || '설명 없음' %></p>
+    <% } %>
+  </div>
+
+  <!-- 영향받는 제품 -->
+  <% if (products && products.length > 0) { %>
+  <div class="results-section">
+    <h3 style="font-size:1rem;margin-bottom:8px;color:#374151;">영향받는 제품</h3>
+    <div class="table-responsive">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>벤더</th>
+            <th>제품</th>
+            <th>영향 버전</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for (const p of products) { %>
+          <tr>
+            <td style="font-weight:600;"><%= p.vendor %></td>
+            <td><%= p.product %></td>
+            <td style="font-family:monospace;font-size:0.85rem;"><%= p.versions %></td>
+          </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- CWE -->
+  <% if (cwes && cwes.length > 0) { %>
+  <div class="system-info">
+    <h3 style="font-size:1rem;margin-bottom:8px;color:#374151;">관련 CWE</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      <% for (const c of cwes) { %>
+      <span style="background:#eff6ff;color:#2563eb;padding:4px 12px;border-radius:16px;font-size:0.85rem;font-weight:500;"><%= c.cwe_id %><% if (c.name) { %> - <%= c.name %><% } %></span>
+      <% } %>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- 참조 링크 -->
+  <% if (refs && refs.length > 0) { %>
+  <div class="system-info">
+    <h3 style="font-size:1rem;margin-bottom:8px;color:#374151;">참조 링크</h3>
+    <ul style="list-style:none;padding:0;">
+      <% for (const r of refs) { %>
+      <li style="margin-bottom:6px;">
+        <% if (r.source) { %><span class="badge badge-na" style="margin-right:4px;"><%= r.source %></span><% } %>
+        <% if (r.url && (r.url.startsWith('http://') || r.url.startsWith('https://'))) { %>
+          <a href="<%= r.url %>" target="_blank" rel="noopener noreferrer" style="color:#2563eb;font-size:0.85rem;word-break:break-all;"><%= r.url %></a>
+        <% } else { %>
+          <span style="font-size:0.85rem;color:#6b7280;word-break:break-all;"><%= r.url %></span>
+        <% } %>
+      </li>
+      <% } %>
+    </ul>
+  </div>
+  <% } %>
+
+  <!-- 수집 소스 -->
+  <% if (sources && sources.length > 0) { %>
+  <div class="system-info">
+    <h3 style="font-size:1rem;margin-bottom:8px;color:#374151;">수집 소스</h3>
+    <div class="table-responsive">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>소스</th>
+            <th>수집일시</th>
+            <th>URL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for (const s of sources) { %>
+          <tr>
+            <td style="font-weight:600;"><%= s.source %></td>
+            <td style="font-size:0.85rem;"><%= s.collected_at ? new Date(s.collected_at).toISOString().slice(0, 16).replace('T', ' ') : '-' %></td>
+            <td><% if (s.source_url && (s.source_url.startsWith('http://') || s.source_url.startsWith('https://'))) { %><a href="<%= s.source_url %>" target="_blank" rel="noopener noreferrer" style="color:#2563eb;font-size:0.83rem;"><%= s.source_url %></a><% } else if (s.source_url) { %><span style="font-size:0.83rem;"><%= s.source_url %></span><% } %></td>
+          </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+</div>
+</body>
+</html>

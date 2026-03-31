@@ -1,0 +1,13 @@
+{
+  "name": "vuln-collector",
+  "version": "1.0.0",
+  "description": "제로데이 및 신규 취약점 수집기",
+  "main": "collector.js",
+  "scripts": {
+    "start": "node collector.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "mysql2": "^3.14.0"
+  }
+}

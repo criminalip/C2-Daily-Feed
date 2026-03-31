@@ -1,0 +1,11 @@
+ES:
+  ES_HOST: '192.168.110.27'
+  ES_PORT: 9200
+  ES_USER: 'forti_reader'
+  ES_PW: 'NtnXPHU_on^fSXf'
+
+ES_AUDIT:
+  ES_HOST: '192.168.110.33'
+  ES_PORT: 9200
+  ES_USER: 'audit_reader'
+  ES_PW: 'NtnXPHU_on^fSXf'

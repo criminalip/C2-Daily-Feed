@@ -1,0 +1,24 @@
+# 민감정보
+.env
+*.env
+
+# 의존성
+node_modules/
+venv/
+
+# Snoopy
+snoopy*
+install-snoopy*
+
+# 로그
+*.log
+*.log-*
+
+# Claude 로컬 설정
+.claude/
+
+# OS / Editor
+.DS_Store
+*.swp
+*.swo
+*~

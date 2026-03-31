@@ -1,0 +1,11 @@
+*.bak
+*.tar
+*.json
+*.md
+!README.md
+!MANUAL.md
+*.log
+*.csv
+.claude/
+Unix_Vulnerability_Scanner_v3.2_decoded/
+node_modules/

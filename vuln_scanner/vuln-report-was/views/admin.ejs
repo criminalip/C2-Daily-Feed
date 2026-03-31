@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사용자 관리 - 취약점 점검 보고서 시스템</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .admin-header h1 { font-size: 1.4rem; }
+    .section-box {
+      background: #fff;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .section-box h2 { font-size: 1.1rem; margin-bottom: 16px; color: #374151; }
+    .form-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group label { font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px; }
+    .form-group input, .form-group select {
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: #2563eb; }
+    .user-table { width: 100%; border-collapse: collapse; }
+    .user-table th { background: #f9fafb; padding: 10px 12px; text-align: left; font-size: 0.825rem; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; }
+    .user-table td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; font-size: 0.85rem; }
+    .user-table tbody tr:hover { background: #f9fafb; }
+    .user-actions { display: flex; gap: 6px; align-items: center; }
+    .pw-form { display: flex; gap: 6px; align-items: center; }
+    .pw-form input { width: 140px; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <%- include('partials/nav', { activeScanner: '' }) %>
+
+    <div class="admin-header" style="margin-top:16px;">
+      <h1>사용자 관리</h1>
+    </div>
+
+    <% if (message) { %>
+      <div class="alert alert-success"><%= message %></div>
+    <% } %>
+    <% if (error) { %>
+      <div class="alert alert-error"><%= error %></div>
+    <% } %>
+
+    <!-- Add User -->
+    <div class="section-box">
+      <h2>사용자 추가</h2>
+      <form action="/admin/add-user" method="POST">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="newUsername">아이디</label>
+            <input type="text" id="newUsername" name="username" required minlength="2" placeholder="아이디">
+          </div>
+          <div class="form-group">
+            <label for="newPassword">비밀번호</label>
+            <input type="password" id="newPassword" name="password" required minlength="4" placeholder="비밀번호">
+          </div>
+          <div class="form-group">
+            <label for="newRole">권한</label>
+            <select id="newRole" name="role">
+              <option value="user">일반 사용자</option>
+              <option value="admin">관리자</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">추가</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- User List -->
+    <div class="section-box">
+      <h2>등록된 사용자 (<%= users.length %>명)</h2>
+      <div class="table-responsive">
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th>아이디</th>
+              <th>권한</th>
+              <th>생성일</th>
+              <th>비밀번호 변경</th>
+              <th>작업</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% for (const u of users) { %>
+              <tr>
+                <td><strong><%= u.username %></strong></td>
+                <td><span class="badge <%= u.role === 'admin' ? 'badge-fail' : 'badge-pass' %>"><%= u.role === 'admin' ? '관리자' : '사용자' %></span></td>
+                <td><%= u.created ? u.created.substring(0, 10) : '-' %></td>
+                <td>
+                  <form action="/admin/change-password" method="POST" class="pw-form">
+                    <input type="hidden" name="username" value="<%= u.username %>">
+                    <input type="password" name="newPassword" placeholder="새 비밀번호" required minlength="4">
+                    <button type="submit" class="btn btn-sm btn-view">변경</button>
+                  </form>
+                </td>
+                <td>
+                  <% if (u.username !== 'admin') { %>
+                    <form action="/admin/delete-user" method="POST" style="display:inline;"
+                          onsubmit="return confirm('정말 삭제하시겠습니까?')">
+                      <input type="hidden" name="username" value="<%= u.username %>">
+                      <button type="submit" class="btn btn-sm btn-delete">삭제</button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

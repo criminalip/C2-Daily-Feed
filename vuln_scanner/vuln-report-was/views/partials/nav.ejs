@@ -1,0 +1,18 @@
+<nav class="top-nav">
+  <div class="nav-left">
+    <span class="nav-brand">취약점 점검 보고서 시스템</span>
+    <div class="nav-tabs">
+      <% for (const s of scanners) { %>
+        <a href="/<%= s.id %>" class="nav-tab <%= activeScanner === s.id ? 'active' : '' %>"><%= s.name %></a>
+      <% } %>
+      <span style="border-left:1px solid #475569;height:20px;margin:0 8px;"></span>
+      <a href="/vulnfeed" class="nav-tab <%= activeScanner === 'vulnfeed' ? 'active' : '' %>">취약점 피드</a>
+    </div>
+  </div>
+  <div class="nav-right">
+    <% if (currentUser && currentUser.role === 'admin') { %>
+      <a href="/admin" class="btn btn-sm btn-back">사용자 관리</a>
+    <% } %>
+    <a href="/logout" class="btn btn-sm btn-delete">로그아웃 (<%= currentUser ? currentUser.username : '' %>)</a>
+  </div>
+</nav>
