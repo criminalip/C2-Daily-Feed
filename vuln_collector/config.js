@@ -32,8 +32,7 @@ module.exports = {
 
   // Slack 알림 설정
   slack: {
-    botToken: process.env.SLACK_BOT_TOKEN || '',
-    channel: process.env.SLACK_CHANNEL || 'C07SD7AEJ6L',
+    webhookUrl: process.env.SLACK_WEBHOOK_URL || '',
     alertCvssThreshold: 8.0
   }
 };

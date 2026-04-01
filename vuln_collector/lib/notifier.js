@@ -2,8 +2,7 @@ const config = require('../config');
 const db = require('./db');
 const logger = require('./logger');
 
-const SLACK_CHANNEL = config.slack.channel;
-const SLACK_TOKEN = config.slack.botToken;
+const SLACK_WEBHOOK_URL = config.slack.webhookUrl;
 
 // RCE 관련 CWE
 const CWE_RCE = new Set([
@@ -112,27 +111,23 @@ async function markAlerted(cveId, categories) {
  * Slack 메시지 전송
  */
 async function sendSlack(payload) {
-  if (!SLACK_TOKEN) {
-    logger.warn('ALERT', 'SLACK_BOT_TOKEN이 설정되지 않아 알림 스킵');
+  if (!SLACK_WEBHOOK_URL) {
+    logger.warn('ALERT', 'SLACK_WEBHOOK_URL이 설정되지 않아 알림 스킵');
     return false;
   }
 
   try {
-    const res = await fetch('https://slack.com/api/chat.postMessage', {
+    const res = await fetch(SLACK_WEBHOOK_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SLACK_TOKEN}`,
         'Content-Type': 'application/json; charset=utf-8',
       },
-      body: JSON.stringify({
-        channel: SLACK_CHANNEL,
-        ...payload,
-      }),
+      body: JSON.stringify(payload),
     });
 
-    const data = await res.json();
-    if (!data.ok) {
-      logger.error('ALERT', `Slack 전송 실패: ${data.error}`);
+    if (!res.ok) {
+      const body = await res.text();
+      logger.error('ALERT', `Slack 전송 실패: ${res.status} ${body}`);
       return false;
     }
     return true;
@@ -146,7 +141,7 @@ async function sendSlack(payload) {
  * 취약점 알림 메시지 구성 및 전송
  */
 async function notifyIfNeeded(data) {
-  if (!SLACK_TOKEN) return;
+  if (!SLACK_WEBHOOK_URL) return;
 
   const cvss = data.cvss_v3_score;
   if (cvss == null || cvss < 8.0) return;
@@ -165,6 +160,15 @@ async function notifyIfNeeded(data) {
   const severityEmoji = cvss >= 9.0 ? ':rotating_light:' : ':warning:';
   const severityLabel = cvss >= 9.0 ? 'CRITICAL' : 'HIGH';
   const categoryLabel = categories.join(' / ');
+
+  // 한글 제목 (첫 문장만, 최대 100자)
+  const titleKo = data.title_ko || data.description_ko || '';
+  const shortTitle = (titleKo || title).split(/[.。]\s*/)[0].substring(0, 100) || '(제목 없음)';
+
+  // 발행일
+  const pubDate = data.published_date
+    ? new Date(data.published_date).toISOString().split('T')[0]
+    : '(미상)';
 
   // 제품 정보
   const products = (data.products || [])
@@ -188,21 +192,16 @@ async function notifyIfNeeded(data) {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*분류:* ${categoryLabel}\n*제목:* ${title.substring(0, 200) || '(제목 없음)'}`,
-      },
-    },
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: (description.substring(0, 500) || '(설명 없음)') + (description.length > 500 ? '...' : ''),
+        text: `*${shortTitle}*`,
       },
     },
     {
       type: 'section',
       fields: [
-        ...(products ? [{ type: 'mrkdwn', text: `*영향 제품:*\n${products}` }] : []),
-        ...(sources ? [{ type: 'mrkdwn', text: `*수집 소스:*\n${sources}` }] : []),
+        { type: 'mrkdwn', text: `*분류:* ${categoryLabel}` },
+        { type: 'mrkdwn', text: `*발행일:* ${pubDate}` },
+        ...(products ? [{ type: 'mrkdwn', text: `*영향 제품:* ${products}` }] : []),
+        ...(sources ? [{ type: 'mrkdwn', text: `*수집 소스:* ${sources}` }] : []),
         { type: 'mrkdwn', text: `*KEV:* ${data.is_kev ? '예' : '아니오'}` },
         { type: 'mrkdwn', text: `*Exploit:* ${data.exploit_available ? '있음' : '없음'}` },
       ],
@@ -212,15 +211,20 @@ async function notifyIfNeeded(data) {
       elements: [
         {
           type: 'button',
-          text: { type: 'plain_text', text: 'NVD 상세보기' },
-          url: `https://nvd.nist.gov/vuln/detail/${data.cve_id}`,
+          text: { type: 'plain_text', text: '상세보기' },
+          url: `https://192.168.111.28/vulnfeed/detail/${data.cve_id}`,
+        },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: 'MITRE' },
+          url: `https://cve.mitre.org/cgi-bin/cvename.cgi?name=${data.cve_id}`,
         },
       ],
     },
   ];
 
   const sent = await sendSlack({
-    text: `${severityEmoji} [${severityLabel}] ${data.cve_id} - ${categoryLabel} (CVSS ${cvss})`,
+    text: `${severityEmoji} [${severityLabel}] ${data.cve_id} - ${shortTitle} (CVSS ${cvss})`,
     blocks,
   });
 
